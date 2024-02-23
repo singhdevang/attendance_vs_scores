@@ -337,8 +337,8 @@ for(board in unique_boards) {
   
   # Create the line graph for the current health board
   num <- ggplot(num_scores, aes(x = month, y = count_sub, group = 1)) +
-    geom_line(color = "#4A7986", size = 0.7) +
-    geom_point(color = "#4A7896", size = 2, shape = 21, fill = "white", stroke = 0.3) +
+    geom_line(color = "#4A7986", size = 1) +
+    geom_point(color = "#4A7896", size = 3, shape = 21, fill = "white", stroke = 0.3) +
     scale_x_discrete() +
     scale_y_continuous(breaks = seq(0, max_count_sub, by = 1), limits = c(0, max_count_sub)) +
     labs(
@@ -415,7 +415,8 @@ for(board in unique_boards) {
     theme_minimal() +
     theme(
       plot.title = element_text(family = "Arial", size = 14, hjust = 0.5, color = "#4A7986"),
-      axis.text.x = element_text(angle = 90, hjust = 1),
+      axis.text.x = element_text(angle = 90, hjust = 1, colour = "darkgray"),
+      axis.text.y = element_text(colour = "darkgray"),
       axis.title.x = element_blank(),
       axis.title.y = element_blank(),
       legend.title = element_blank(),
@@ -428,7 +429,11 @@ for(board in unique_boards) {
       panel.grid.minor = element_blank(),
       panel.background = element_blank(),
       axis.line.x = element_line(color = "darkgray"),
-      plot.margin = unit(c(0.5, 1, 2, 1), "cm")
+      plot.margin = unit(c(0.5, 1, 2, 1), "cm"),
+      axis.ticks.x = element_line(colour = "gray"),
+      axis.ticks.length = unit(0.1, "cm"),
+      axis.ticks.margin = unit(0.2, "cm")
+      
     )
   
   # Print the plot
@@ -438,3 +443,351 @@ for(board in unique_boards) {
   plot_list_att[[board]] <- att
 }
 
+
+
+############### LINE GRAPH OF DIFFERENCE OF SCORES ###################################
+
+diff <- finale_df |>
+          select(
+            `Health Board / Trust`, month, median_score) |>
+            filter(!is.na(month), month != "January 2023")
+
+# Preprocess to fill NA median_scores with the next available non-NA values within each group
+df_diff <- diff %>%
+  group_by(`Health Board / Trust`) %>%
+  mutate(filled_median_score = na.locf(median_score, na.rm = FALSE, fromLast = TRUE)) %>%
+  ungroup()
+
+# Calculate the difference in filled_median_score for each Health Board / Trust, using next available non-NA value
+df_diff <- df_diff %>%
+  group_by(`Health Board / Trust`) %>%
+  mutate(difference = lead(filled_median_score, default = last(filled_median_score)) - filled_median_score) %>%
+  ungroup()
+
+
+library(dplyr)
+library(lubridate)
+
+# Assuming your dataframe is named 'diff'
+# Ensure 'month' is in date format if it's not already
+
+diff <- diff %>%
+       arrange(`Health Board / Trust`, month) %>%
+      group_by(`Health Board / Trust`) %>%
+       mutate(last_observed_median = na.locf(median_score, na.rm = FALSE),
+                         difference = median_score - lag(last_observed_median, default = NA_real_))
+ 
+   # Cleaning up intermediate column if not needed
+   diff <- diff %>%
+       select(-last_observed_median)
+ View(diff)
+
+
+
+
+unique_boards <- unique(finale_df$`Health Board / Trust`)
+
+# Placeholder for storing plots if needed
+plot_list_diff <- list()
+for(board in unique_boards) {
+  new_diff <- df_diff %>%
+    filter(`Health Board / Trust` == board, month != "January 2023")
+  
+  # Determine the range for y-axis to ensure it includes 0
+  y_range <- range(new_diff$difference, na.rm = TRUE)
+  y_range[1] <- min(0, y_range[1])  # Ensure 0 is included as the lower limit if not already
+  
+  # Create the line graph for the current health board
+  plot_diff <- ggplot(new_diff, aes(x = month, y = difference, group = 1)) +
+    geom_line(color = "#4A7986", size = 1) +
+    geom_point(color = "#4A7896", size = 3, shape = 21, fill = "white", stroke = 0.3) +
+    geom_hline(yintercept = 0, linetype = "dashed", color = "darkgray") +  # Add horizontal line at y=0
+    scale_x_discrete() +
+    scale_y_continuous(limits = y_range) +  # Ensure y-axis always includes 0
+    labs(
+      title = paste("Difference in median of monthly progress scores", board),
+      caption = "Source: SCC National Planning File"
+    ) +
+    theme_minimal(base_family = "sans") +
+    theme(
+      plot.title = element_text(size = 12, hjust = 0.5, color = "#1b5768"),
+      plot.subtitle = element_text(size = 12, hjust = 0.5, color = "#1b5768", margin = margin(b = 10)),
+      plot.caption = element_text(size = 8, hjust = 1, color = "darkgray"),
+      axis.text.x = element_text(angle = 90, hjust = 1, color = "darkgray"),
+      axis.text.y = element_text(angle = 0, hjust = 1, color = "darkgray"),
+      axis.title.x = element_blank(),
+      axis.title.y = element_blank(),
+      axis.line.x = element_line(colour = "gray"),
+      axis.line.y = element_blank(),
+      axis.ticks.x = element_line(color = "gray"),
+      axis.ticks.y = element_blank(),
+      panel.grid = element_blank(),
+      panel.background = element_rect(fill = "white", color = NA)
+    )
+  
+  # Print the line graph
+  print(plot_diff)
+  
+  # Optionally, store the plot in a list if you want to access it later
+  plot_list_diff[[board]] <- plot_diff
+}
+
+
+
+
+
+################# ATTEMPTS TO TRY AND FIT GRAPHS #######################
+install.packages("patchwork")
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(patchwork)
+library(gridExtra)
+
+# Assuming you have already created your dataframes and plots
+
+# Set up PDF output
+pdf("Organizations_Graphs.pdf", width = 11, height = 8.5)
+
+unique_boards <- unique(finale_df$`Health Board / Trust`)
+
+for(board in unique_boards) {
+  # Create your plots for each board here
+#############1 
+  new_diff <- df_diff %>%
+    filter(`Health Board / Trust` == board, month != "January 2023")
+  
+  # Determine the range for y-axis to ensure it includes 0
+  y_range <- range(new_diff$difference, na.rm = TRUE)
+  y_range[1] <- min(0, y_range[1])  # Ensure 0 is included as the lower limit if not already
+  
+  # Create the line graph for the current health board
+  plot_diff <- ggplot(new_diff, aes(x = month, y = difference, group = 1)) +
+    geom_line(color = "#4A7986", size = 1) +
+    geom_point(color = "#4A7896", size = 3, shape = 21, fill = "white", stroke = 0.3) +
+    geom_hline(yintercept = 0, linetype = "dashed", color = "darkgray") +  # Add horizontal line at y=0
+    scale_x_discrete() +
+    scale_y_continuous(limits = y_range) +  # Ensure y-axis always includes 0
+    labs(
+      title = paste("Difference in median of monthly progress scores", board),
+      caption = "Source: SCC National Planning File"
+    ) +
+    theme_minimal(base_family = "sans") +
+    theme(
+      plot.title = element_text(size = 12, hjust = 0.5, color = "#1b5768"),
+      plot.subtitle = element_text(size = 12, hjust = 0.5, color = "#1b5768", margin = margin(b = 10)),
+      plot.caption = element_text(size = 8, hjust = 1, color = "darkgray"),
+      axis.text.x = element_text(angle = 90, hjust = 1, color = "darkgray"),
+      axis.text.y = element_text(angle = 0, hjust = 1, color = "darkgray"),
+      axis.title.x = element_blank(),
+      axis.title.y = element_blank(),
+      axis.line.x = element_line(colour = "gray"),
+      axis.line.y = element_blank(),
+      axis.ticks.x = element_line(color = "gray"),
+      axis.ticks.y = element_blank(),
+      panel.grid = element_blank(),
+      panel.background = element_rect(fill = "white", color = NA)
+    )
+}
+  #############2
+  
+  
+  # Filter data for the current board
+  board_data <- bg %>%
+    filter(`Health Board / Trust` == board, !is.na(month), month != "December 2023")
+  
+  # Determine dynamic y-axis limits and breaks
+  max_count <- max(board_data$number, na.rm = TRUE) + 2
+  y_breaks <- seq(0, max_count, by = max(1, floor((max_count - 0) / 5))) # Adjust the divisor for different granularity
+  
+  # Plot
+  att <- ggplot(board_data, aes(x = month, y = number, fill = session)) +
+    geom_bar(stat = "identity", position = "stack") +
+    scale_fill_manual(values = c("count_cc" = "#FFE18A", "count_cclead" = "#BCB1C7", "count_ls" = "#99D7D8"),
+                      labels = c("Coaching Call", "Coaching Call (Leadership)", "Learning Session")) +
+    scale_y_continuous(expand = c(0, 0), limits = c(0, max_count), breaks = y_breaks) +
+    labs(title = paste("Number of attendees in Learning Session and Coaching Call for", board),
+         x = "Month",
+         y = "",
+         fill = "Session Type") +
+    theme_minimal() +
+    theme(
+      plot.title = element_text(family = "Arial", size = 14, hjust = 0.5, color = "#4A7986"),
+      axis.text.x = element_text(angle = 90, hjust = 1, colour = "darkgray"),
+      axis.text.y = element_text(colour = "darkgray"),
+      axis.title.x = element_blank(),
+      axis.title.y = element_blank(),
+      legend.title = element_blank(),
+      legend.position = c(0, -0.42),
+      legend.justification = c(0, 0),
+      legend.box.margin = margin(0, 0, 0, 0),
+      legend.background = element_blank(),
+      legend.key = element_blank(),
+      panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank(),
+      panel.background = element_blank(),
+      axis.line.x = element_line(color = "darkgray"),
+      plot.margin = unit(c(0.5, 1, 2, 1), "cm"),
+      axis.ticks.x = element_line(colour = "gray"),
+      axis.ticks.length = unit(0.1, "cm"),
+      axis.ticks.margin = unit(0.2, "cm")
+      
+    )
+  
+  ######################3
+  for(board in unique_boards) {
+    num_scores <- finale_df |>
+      filter(!is.na(month), `Health Board / Trust` == board, month != "January 2023")
+    
+    # Determine the maximum value of count_sub for the current board and add 2
+    max_count_sub <- max(num_scores$count_sub, na.rm = TRUE) + 2
+    
+    # Create the line graph for the current health board
+    num <- ggplot(num_scores, aes(x = month, y = count_sub, group = 1)) +
+      geom_line(color = "#4A7986", size = 1) +
+      geom_point(color = "#4A7896", size = 3, shape = 21, fill = "white", stroke = 0.3) +
+      scale_x_discrete() +
+      scale_y_continuous(breaks = seq(0, max_count_sub, by = 1), limits = c(0, max_count_sub)) +
+      labs(
+        title = paste("Number of submissions per Month by", board),
+        caption = "Source: SCC National Planning File"
+      ) +
+      theme_minimal(base_family = "sans") +
+      theme(
+        plot.title = element_text(size = 12, hjust = 0.5, color = "#1b5768"),
+        plot.subtitle = element_text(size = 12, hjust = 0.5, color = "#1b5768", margin = margin(b = 10)),
+        plot.caption = element_text(size = 8, hjust = 1, color = "darkgray"),
+        axis.text.x = element_text(angle = 90, hjust = 1, color = "darkgray"),
+        axis.text.y = element_text(angle = 0, hjust = 1, color = "darkgray"),
+        axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        axis.line.x = element_line(colour = "gray"),
+        axis.line.y = element_blank(),
+        axis.ticks.x = element_line(color = "gray"),
+        axis.ticks.y = element_blank(),
+        panel.grid = element_blank(),
+        panel.background = element_rect(fill = "white", color = NA)
+      )
+  
+########################4
+    # Filter the dataframe for the current board
+    board_df <- df1 %>%
+      filter(`Health Board / Trust` == board) %>%
+      pivot_longer(
+        cols = contains("202"),
+        names_to = "month",
+        values_to = "score"
+      ) %>%
+      mutate(
+        month = factor(month, levels = months, ordered = TRUE)
+      ) %>%
+      filter(!is.na(month)) %>%
+      arrange(month)
+    
+    
+    # Plotting
+    bp <- ggplot(board_df, aes(x = month, y = score)) +
+      geom_boxplot(na.rm = TRUE, fill = '#4A7986', color = 'darkgray') +
+      scale_x_discrete() +
+      scale_y_continuous(breaks = seq(0, 5, by = 1), limits = c(0,5)) +
+      labs(
+        title = paste("Box Plot of Monthly Progress Scores for", board),
+        caption = "Source: SCC National Planning File"
+      ) +
+      theme_minimal(base_family = "sans") +
+      theme(
+        plot.title = element_text(size = 12, hjust = 0.5, color = "#1b5768"),
+        plot.subtitle = element_text(size = 10, hjust = 0.5, color = "#1b5768", margin = margin(b = 10)),
+        plot.caption = element_text(size = 7, hjust = 1, color = "gray"),
+        axis.text.x = element_text(angle = 90, hjust = 1, color = "darkgray"),
+        axis.text.y = element_text(angle = 0, hjust = 1, color = "darkgray"),
+        axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        axis.line.x = element_line(color = "gray"),
+        axis.line.y = element_line(color = "gray"),
+        axis.ticks.x = element_line(color = "gray"),
+        axis.ticks.y = element_line(color = "gray"),
+        axis.ticks.length = unit(0.1, "cm"),
+        axis.ticks.margin = unit(0.2, "cm"),
+        panel.grid = element_blank(),
+        panel.background = element_rect(fill = "white", color = NA),
+        plot.caption.position = "plot"
+      )
+    
+  
+  # Combine plots
+  combined_plots <- plot_diff + att + num + bp +
+    plot_layout(ncol = 2, nrow = 2) # Adjust layout as needed
+  
+  # Print combined plots to the current page of the PDF
+  print(combined_plots)
+}
+
+# Close the PDF device
+dev.off()
+
+
+################# MEDIAN OF DIFFERENCES PER PROJECT PER ORGANISATION ####################################
+
+
+
+df <- read_excel("C:/Users/De122459/OneDrive - NHS Wales/National SCC Project Planning/National SCC project planning.xlsx")
+
+
+df1_diff_med <- df |>
+  select(`Health Board / Trust`,`Unique ID`  , contains("202")) |>
+  
+  rename("February 2023"= "Monthly Progress Score - February 2023 (MSSW only)",
+         "March 2023" = "Monthly Progress Score - March 2023 (MSSW ONLY)",
+         "April 2023" = "Monthly Progress Score - April 2023",
+         "May 2023" = "Monthly Progress Score - May 2023",
+         "June 2023" = "Monthly Progress Score - June 2023",
+         "July 2023" = "Monthly Progress Score - July 2023",
+         "August 2023" = "Monthly Progress Score - August 2023",
+         "September 2023" = "Monthly Progress Score - September 2023",
+         "October 2023" = "Monthly Progress Score - October 2023 (Due 21/11/23)",
+         "November 2023" = "Monthly Progress Score - November 2023 (Due 13th Dec)",
+         "December 2023" = "Monthly Progress Score - December 2023 (due 17th January)",
+         "January 2024" = "Monthly Progress Score - January 2024 (due 13th Feb 2024)",
+         "February 2024" = "Monthly Progress Score - February 2024 (due 13th march 2024)") |>
+  
+  mutate(across(everything(), ~if_else(. == "" | . == "NO Report received" | . == "No report received", NA, .))) |>
+  
+  mutate(
+    across(
+      .cols = matches("202"),
+      .fns = ~parse_number(.)
+    )
+  ) |>
+  
+  filter(!if_all(everything(), is.na))
+
+month_order <- c("January 2023","February 2023", "March 2023", "April 2023", "May 2023", 
+                 "June 2023", "July 2023", "August 2023", "September 2023", 
+                 "October 2023", "November 2023", "December 2023", 
+                 "January 2024")
+
+
+df2_diff_med <- df1_diff_med |>
+  pivot_longer(cols = contains("202"),
+               names_to = "month", 
+               values_to = "score") |>
+  mutate(month = factor(month, levels = month_order)) 
+
+df3_diff_med <- df2_diff_med %>%
+  arrange(`Health Board / Trust`, `Unique ID`, fct_inorder(month)) %>%
+  group_by(`Health Board / Trust`, `Unique ID`) %>%
+  mutate(last_observed_score = na.locf(score, na.rm = FALSE),
+         difference = score - lag(last_observed_score, default = NA_real_))
+
+# Cleaning up intermediate column if not needed
+df3_diff_med <- df3_diff_med |>
+  select(-last_observed_score) 
+
+df3_diff_med<- df3_diff_med |>
+  filter(!is.na(`Health Board / Trust`))
+
+median_diff_df <- df3_diff_med %>%
+  group_by(`Health Board / Trust`, month) %>%
+  summarize(median_diff = median(difference, na.rm = TRUE), .groups = 'drop') |>
+  filter(month != "February 2023")
