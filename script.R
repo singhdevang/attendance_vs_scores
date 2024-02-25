@@ -751,7 +751,9 @@ df1_diff_med <- df |>
          "January 2024" = "Monthly Progress Score - January 2024 (due 13th Feb 2024)",
          "February 2024" = "Monthly Progress Score - February 2024 (due 13th march 2024)") |>
   
-  mutate(across(everything(), ~if_else(. == "" | . == "NO Report received" | . == "No report received", NA, .))) |>
+  mutate(
+    across(everything(), 
+           ~if_else(. == "" | . == "NO Report received" | . == "No report received", NA, .))) |>
   
   mutate(
     across(
@@ -760,34 +762,43 @@ df1_diff_med <- df |>
     )
   ) |>
   
-  filter(!if_all(everything(), is.na))
+  filter(
+    !if_all(everything(), is.na))
 
-month_order <- c("January 2023","February 2023", "March 2023", "April 2023", "May 2023", 
-                 "June 2023", "July 2023", "August 2023", "September 2023", 
-                 "October 2023", "November 2023", "December 2023", 
-                 "January 2024")
+month_order <- c("January 2023","February 2023", "March 2023", "April 2023",
+                 "May 2023","June 2023", "July 2023",
+                 "August 2023", "September 2023","October 2023", 
+                 "November 2023", "December 2023", "January 2024")
 
 
 df2_diff_med <- df1_diff_med |>
-  pivot_longer(cols = contains("202"),
-               names_to = "month", 
-               values_to = "score") |>
-  mutate(month = factor(month, levels = month_order)) 
+              pivot_longer(
+                cols = contains("202"),
+                    names_to = "month", 
+                        values_to = "score") |>
+              mutate(
+                month = factor(month, levels = month_order)) 
 
-df3_diff_med <- df2_diff_med %>%
-  arrange(`Health Board / Trust`, `Unique ID`, fct_inorder(month)) %>%
-  group_by(`Health Board / Trust`, `Unique ID`) %>%
-  mutate(last_observed_score = na.locf(score, na.rm = FALSE),
-         difference = score - lag(last_observed_score, default = NA_real_))
+df3_diff_med <- df2_diff_med |>
+                    arrange(
+                      `Health Board / Trust`, `Unique ID`, fct_inorder(month)) |>
+                    group_by(
+                      `Health Board / Trust`, `Unique ID`) |>
+                    mutate(
+                      last_observed_score = na.locf(score, na.rm = FALSE),
+                           difference = score - lag(last_observed_score, default = NA_real_))
 
 # Cleaning up intermediate column if not needed
 df3_diff_med <- df3_diff_med |>
-  select(-last_observed_score) 
+                  select(-last_observed_score) 
 
 df3_diff_med<- df3_diff_med |>
-  filter(!is.na(`Health Board / Trust`))
+                  filter(!is.na(`Health Board / Trust`))
 
-median_diff_df <- df3_diff_med %>%
-  group_by(`Health Board / Trust`, month) %>%
-  summarize(median_diff = median(difference, na.rm = TRUE), .groups = 'drop') |>
-  filter(month != "February 2023")
+median_diff_df <- df3_diff_med |>
+                    group_by(
+                      `Health Board / Trust`, month) |>
+                    summarize(
+                      median_diff = median(difference, na.rm = TRUE), .groups = 'drop') |>
+                    filter(
+                      month != "February 2023")
