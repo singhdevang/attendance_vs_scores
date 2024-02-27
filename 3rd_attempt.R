@@ -12,36 +12,38 @@ df <- read_excel("C:/Users/De122459/OneDrive - NHS Wales/National SCC Project Pl
 
 
 df1 <- df |>
-  select(`Health Board / Trust`, `Unique ID` ,contains("202")) |>
-  
-  mutate(`Health Board / Trust` = str_remove_all(
-    `Health Board / Trust`, " University| Trust| Health| Board| NHS| Teaching"))|>
-  
-  rename("February 2023"= "Monthly Progress Score - February 2023 (MSSW only)",
-         "March 2023" = "Monthly Progress Score - March 2023 (MSSW ONLY)",
-         "April 2023" = "Monthly Progress Score - April 2023",
-         "May 2023" = "Monthly Progress Score - May 2023",
-         "June 2023" = "Monthly Progress Score - June 2023",
-         "July 2023" = "Monthly Progress Score - July 2023",
-         "August 2023" = "Monthly Progress Score - August 2023",
-         "September 2023" = "Monthly Progress Score - September 2023",
-         "October 2023" = "Monthly Progress Score - October 2023 (Due 21/11/23)",
-         "November 2023" = "Monthly Progress Score - November 2023 (Due 13th Dec)",
-         "December 2023" = "Monthly Progress Score - December 2023 (due 17th January)",
-         "January 2024" = "Monthly Progress Score - January 2024 (due 13th Feb 2024)",
-         "February 2024" = "Monthly Progress Score - February 2024 (due 13th march 2024)") |>
-  
-  mutate(across(everything(), ~if_else(. == "" | . == "NO Report received" | . == "No report received", NA, .))) |>
-  
-  mutate(
-    across(
-      .cols = matches("202"),
-      .fns = ~parse_number(.)
-    )
-  ) |>
-  
-  filter(!if_all(everything(), is.na))
+          select(
+            `Health Board / Trust`, 
+              `Unique ID` ,
+                contains("202")) |>
+          mutate(
+            `Health Board / Trust` = str_remove_all(
+            `Health Board / Trust`, " University| Trust| Health| Board| NHS| Teaching"))|>
+          rename(
+                "February 2023"= "Monthly Progress Score - February 2023 (MSSW only)",
+                 "March 2023" = "Monthly Progress Score - March 2023 (MSSW ONLY)",
+                 "April 2023" = "Monthly Progress Score - April 2023",
+                 "May 2023" = "Monthly Progress Score - May 2023",
+                 "June 2023" = "Monthly Progress Score - June 2023",
+                 "July 2023" = "Monthly Progress Score - July 2023",
+                 "August 2023" = "Monthly Progress Score - August 2023",
+                 "September 2023" = "Monthly Progress Score - September 2023",
+                 "October 2023" = "Monthly Progress Score - October 2023 (Due 21/11/23)",
+                 "November 2023" = "Monthly Progress Score - November 2023 (Due 13th Dec)",
+                 "December 2023" = "Monthly Progress Score - December 2023 (due 17th January)",
+                 "January 2024" = "Monthly Progress Score - January 2024 (due 13th Feb 2024)",
+                 "February 2024" = "Monthly Progress Score - February 2024 (due 13th march 2024)")|>
+          mutate(
+            across(
+              everything(),
+              ~if_else(. == "" | . == "NO Report received" | . == "No report received", NA, .)))|>
+          mutate(
+            across(
+              .cols = matches("202"),
+              .fns = ~parse_number(.))) |>
+          filter(!if_all(everything(), is.na))
 
+# Set levels for months 
 month_order <- c("January 2023","February 2023", "March 2023", "April 2023", "May 2023", 
                  "June 2023", "July 2023", "August 2023", "September 2023", 
                  "October 2023", "November 2023", "December 2023", 
@@ -69,86 +71,73 @@ df2 <- df1 |>
 at <- read_excel("C:/Users/De122459/OneDrive - NHS Wales/Contact List/SCC Master Distribution List .xlsx")
 
 at1 <- at |>
-  select(
-    Organisation,21:40) |>
-  # REMOVING INTERNAL COUNTS FROM ANALYSIS
-  filter(
-    !(Organisation %in% c("Public Health Wales", "IHI", "RSM", "NHS Wales Executive", 
-                          "Improvement Cymru", "NHS Executive", "HEIW", "Assitant Director of Quailty and Nursing"))) |>
-  mutate(
-    across(2:21, ~ifelse(grepl("^[Yy]", .) | grepl("^[Yy]$", .), "Y", NA)),
-    `Learning Session 4(November 2023)` = ifelse(!is.na(`LS4 Day 2`) | !is.na(`LS4 Cl Ex`) | !is.na(`LS4 Day 1 (AB, CTM, HD)`), "Y", NA),
-    `Learning Session 3(September 2023)` = ifelse(!is.na(`LS3`) | !is.na(`LS3 Cl Ex`), "Y", NA),
-    Organisation = case_when(
-      Organisation %in% c("Aneurin Bevan UHB Monmouthshire Gov", "Monmouthshire Gov", "Aneurin Bevan UHB") ~ "Aneurin Bevan",
-      Organisation %in% c("BCUHB/FCC/WCBC/Flinshire CBC","Betsi Cadwaladr UHB")  ~ "Betsi Cadwaladr",
-      Organisation %in% c("Cardiff & Vale UHB & Acute Response Team","Cardiff & Vale UHB")  ~ "Cardiff & Vale",
-      Organisation %in% c("Swansea Council","Swansea Bay UHB") ~ "Swansea Bay",
-      Organisation %in% c("NHS Velindre Trust - Welsh Blood Service", "Velindre University NHS Trust", "Velindre") ~ "Velindre",
-      Organisation %in%c("Welsh Ambulance Service NHS Trust", "Welsh Ambulance Service Trust") ~ "Welsh Ambulance Service",
-      Organisation == "Hywel Dda UHB" ~ "Hywel Dda",
-      Organisation ==  "Powys THB" ~ "Powys",
-      Organisation == "Cwm Taf Morgannwg UHB" ~ "Cwm Taf Morgannwg",
-      TRUE ~ Organisation
-    )) |>
-  rename(
-    `Lead Coaching Call(January 2024)` = `Jan Lead CC`,
-    `Coaching Call(January 2024)` = `Jan CC 24`,
-    `Lead Coaching Call(October 2023)` = `Oct Lead CC`,
-    `Coaching Call(October 2023)` = `Oct CC`,
-    `Lead Coaching Call(August 2023)` = `Aug Lead CC`,
-    `Coaching Call(August 2023)` = `Aug CC`,
-    `Lead Coaching Call(July 2023)` = `July Lead CC`,
-    `Coaching Call(July 2023)` = `11`,
-    `Learning Session 2(June 2023)` = `LS2`,
-    `Coaching Call(May 2023)` = `May CC`,
-    `Coaching Call(April 2023)` = `Apr CC`,
-    `Learning Session 1.2(March 2023)` = `LS 1.2`,
-    `Coaching Call(February 2023)` = `Feb CC`,
-    `Coaching Call(January 2023)` = `Jan CC`,
-    `Health Board / Trust` = `Organisation`
-  ) |>
-  select(
-    -c("LS4 Day 2", "LS4 Cl Ex", "LS4 Day 1 (AB, CTM, HD)","LS3", "LS3 Cl Ex"))
-
-#session_order <- c("Coaching Call(January 2023)", "Coaching Call(February 2023)", "Learning Session 1.2(March 2023)", "Coaching Call(April 2023)", "Coaching Call(May 2023)" , "Learning Session 2(June 2023)",
-                  # "Lead Coaching Call(July 2023)", "Coaching Call(July 2023)" , "Lead Coaching Call(August 2023)","Coaching Call(August 2023)" , "Learning Session 3(September 2023)" ,
-                   #"Coaching Call(October 2023)","Lead Coaching Call(October 2023)","Learning Session 4(November 2023)","Lead Coaching Call(January 2024)", "Coaching Call(January 2024)")
-
-## function to make data frames for coaching calls and learning sessions
-calc_count <- function(session_name) {
-  at1 |>
-    select(`Health Board / Trust`, matches(session_name)) |>
-    filter(!is.na(`Health Board / Trust`)) |> # Drop rows with NA in Organisation
-    pivot_longer(
-      cols = matches(session_name),
-      names_to = "session",
-      values_to = "attendance"
-    ) |>
-   # mutate(session = factor(session, levels = session_order)) |>
-    group_by(`Health Board / Trust`, session) |>
-    summarise(count = sum(attendance == "Y", na.rm = TRUE))|>
-    mutate(month = str_extract(session, "\\(([^)]+)")) |>
-    mutate(month = str_remove_all(month, "[()]")) 
-} 
-##individual data frames with counts of coaching calls and learning sessions
-cc <- calc_count("^C")|>
+        select(
+          Organisation,21:40) |>
+        # REMOVING INTERNAL organisation COUNTS FROM ANALYSIS
+        filter(
+          !(Organisation %in% c("Public Health Wales", "IHI", "RSM", "NHS Wales Executive", 
+                                "Improvement Cymru", "NHS Executive", "HEIW", "Assitant Director of Quailty and Nursing"))) |>
+        mutate(
+          across(2:21, ~ifelse(grepl("^[Yy]", .) | grepl("^[Yy]$", .), "Y", NA)),
+          `Learning Session 4(November 2023)` = ifelse(!is.na(`LS4 Day 2`) | !is.na(`LS4 Cl Ex`) | !is.na(`LS4 Day 1 (AB, CTM, HD)`), "Y", NA),
+          `Learning Session 3(September 2023)` = ifelse(!is.na(`LS3`) | !is.na(`LS3 Cl Ex`), "Y", NA),
+          Organisation = case_when(
+            Organisation %in% c("Aneurin Bevan UHB Monmouthshire Gov", "Monmouthshire Gov", "Aneurin Bevan UHB") ~ "Aneurin Bevan",
+            Organisation %in% c("BCUHB/FCC/WCBC/Flinshire CBC","Betsi Cadwaladr UHB")  ~ "Betsi Cadwaladr",
+            Organisation %in% c("Cardiff & Vale UHB & Acute Response Team","Cardiff & Vale UHB")  ~ "Cardiff & Vale",
+            Organisation %in% c("Swansea Council","Swansea Bay UHB") ~ "Swansea Bay",
+            Organisation %in% c("NHS Velindre Trust - Welsh Blood Service", "Velindre University NHS Trust", "Velindre") ~ "Velindre",
+            Organisation %in%c("Welsh Ambulance Service NHS Trust", "Welsh Ambulance Service Trust") ~ "Welsh Ambulance Service",
+            Organisation == "Hywel Dda UHB" ~ "Hywel Dda",
+            Organisation ==  "Powys THB" ~ "Powys",
+            Organisation == "Cwm Taf Morgannwg UHB" ~ "Cwm Taf Morgannwg",
+            TRUE ~ Organisation
+          )) |>
         rename(
-          `count_cc` = `count`)|>
-            select(
-              -session)
+          `Lead Coaching Call(January 2024)` = `Jan Lead CC`,
+          `Coaching Call(January 2024)` = `Jan CC 24`,
+          `Lead Coaching Call(October 2023)` = `Oct Lead CC`,
+          `Coaching Call(October 2023)` = `Oct CC`,
+          `Lead Coaching Call(August 2023)` = `Aug Lead CC`,
+          `Coaching Call(August 2023)` = `Aug CC`,
+          `Lead Coaching Call(July 2023)` = `July Lead CC`,
+          `Coaching Call(July 2023)` = `11`,
+          `Learning Session 2(June 2023)` = `LS2`,
+          `Coaching Call(May 2023)` = `May CC`,
+          `Coaching Call(April 2023)` = `Apr CC`,
+          `Learning Session 1.2(March 2023)` = `LS 1.2`,
+          `Coaching Call(February 2023)` = `Feb CC`,
+          `Coaching Call(January 2023)` = `Jan CC`,
+          `Health Board / Trust` = `Organisation`
+        ) |>
+        select(
+          -c("LS4 Day 2", "LS4 Cl Ex", "LS4 Day 1 (AB, CTM, HD)","LS3", "LS3 Cl Ex"))
+      
 
-cc_lead <- calc_count("^Lead")|> 
-            rename(
-              `count_cclead` = `count`)|>
-                  select(
-                    -session)
+# Enhanced function to calculate counts and format the data frame
+calc_counts_and_format <- function(session_pattern, count_column_name) {
+        at1 |>
+          select(`Health Board / Trust`, matches(session_pattern)) |>
+          filter(!is.na(`Health Board / Trust`)) |> # Drop rows with NA in Organisation
+          pivot_longer(
+            cols = matches(session_pattern),
+            names_to = "session",
+            values_to = "attendance"
+          ) |>
+          group_by(`Health Board / Trust`, session) |>
+          summarise(count = sum(attendance == "Y", na.rm = TRUE)) |>
+          mutate(month = str_extract(session, "\\(([^)]+)")) |>
+          mutate(month = str_remove_all(month, "[()]")) |>
+          rename(!!count_column_name := count) |>
+          select(-session)
+      }
 
-ls <- calc_count("^Lear")|>
-        rename(
-          `count_ls` = `count`)|>
-            select(
-              -session)
+# Using the enhanced function to create individual data frames
+#renaming columns for clarity later after the full join
+cc <- calc_counts_and_format("^C", "count_cc")
+cc_lead <- calc_counts_and_format("^Lead", "count_cclead")
+ls <- calc_counts_and_format("^Lear", "count_ls")
+
 
 # List all data frames you want to join
 data_frames <- list(cc, df2, cc_lead, ls)
@@ -161,12 +150,16 @@ finale_df <- final_df |>
                 mutate(
                   month = factor(month, levels = month_order, ordered = TRUE))|> #using levels created before
                 select(
-                  `Health Board / Trust`, month, count_sub, median_score, count_cc, count_cclead, count_ls)|>
+                  `Health Board / Trust`, month, count_sub, median_score, count_cc, count_cclead, count_ls)|> #reordering columns for a better view
                 mutate(
                   across(
                     c(starts_with("c")), ~if_else(.x == 0, NA_real_, .x)))|> #converting attendance values from 0 to NA for plotting purposes and uniformity as some other 0 values are already NA
                 arrange(
-                  `Health Board / Trust`, month)
+                  `Health Board / Trust`, month)|>
+                filter(
+                  !is.na(`Health Board / Trust`) &
+                    !is.na(month)
+                )
 
 
 ############## DATA FRAME PREP FOR BOXPLOTS ##########################
@@ -181,7 +174,7 @@ bp_df <- df1 |>
             month = factor(month, levels = month_order, ordered = TRUE)
           ) |>
           filter(
-            !is.na(month)
+            !is.na(`Health Board / Trust`) & !is.na(month)
           )|>
           select(
             - `Unique ID`
@@ -189,16 +182,29 @@ bp_df <- df1 |>
           arrange(
             `Health Board / Trust`, month
           )
+############### DATA FRAME PREP FOR PLOTTING ATTENDANCE #######################
+
+bg <- finale_df |>
+        select(
+          -count_sub, 
+          -median_score) |>
+        pivot_longer(
+          cols = starts_with("c"),
+          names_to = "session",
+          values_to = "number")|>
+          filter(
+            !is.na(
+              `Health Board / Trust`), 
+                 month != "December 2023") # NO EVENT IN DECEMBER)
+
+
 
 ############## DATA FRAME PREP FOR DIFFERENCE OF MEDIAN ####################### 
 diff <- finale_df |>
           select(
             `Health Board / Trust`, month, median_score) |>
           filter(
-            !is.na(month), month != "January 2023") # FILTERING OUT JAN AS SCORE SUBMISSIONS BEGAN IN FEB 2023
-
-
-diff <- diff |>
+            !is.na(month) & !is.na(`Health Board / Trust`), month != "January 2023")|># FILTERING OUT JAN AS SCORE SUBMISSIONS BEGAN IN FEB 2023
           arrange(
             `Health Board / Trust`,
             month) |>
@@ -214,7 +220,8 @@ diff <- diff |>
 diff <- diff |>
           select(
             -last_observed_median) |>
-            filter(month != "February 2023") # as there is no precdeing month to this, this can be omitted for plotting
+            filter(
+              month != "February 2023") # as there is no preceding month to this, this can be omitted for plotting
 
 
 ################DATA FRAME PREP FOR MEDIAN OF DIFFERENCE PER PROJECT PER MONTH################################
@@ -225,10 +232,7 @@ df1_diff_med <- df1|>
                   names_to = "month", 
                   values_to = "score") |>
                 mutate(
-                  month = factor(month, levels = month_order)) 
-
-
-df3_diff_med <- df1_diff_med |>
+                  month = factor(month, levels = month_order))|>
                   arrange(
                     `Health Board / Trust`, `Unique ID`, fct_inorder(month)) |>
                   group_by(
@@ -239,24 +243,24 @@ df3_diff_med <- df1_diff_med |>
                   filter(!is.na(`Health Board / Trust`))
 
 # Cleaning up intermediate column if not needed
-df3_diff_med <- df3_diff_med |>
-  select(-last_observed_score) 
+df3_diff_med <- df1_diff_med |>
+                 select(-last_observed_score) 
 
 
 
 median_diff_df <- df3_diff_med |>
-  group_by(
-    `Health Board / Trust`, month) |>
-  summarize(
-    median_diff = median(difference, na.rm = TRUE), .groups = 'drop') |>
-  filter(
-    month != "February 2023")
+                  group_by(
+                    `Health Board / Trust`, month) |>
+                  summarize(
+                    median_diff = median(difference, na.rm = TRUE), .groups = 'drop') |>
+                  filter(
+                    month != "February 2023")
 
-################################################################################
+################ PLOTTING BEGINS #######################################
 
 
 #Listing all Unique Values of Health Board / Trust for loop
-unique_boards <- unique(df1$`Health Board / Trust`)
+unique_boards <- unique(finale_df$`Health Board / Trust`)
 
 
 # Iterate over each unique Health Board / Trust to create individual plots
@@ -297,7 +301,6 @@ for(board in unique_boards) {
   
 num_scores <- finale_df |>
                 filter(
-                 # !is.na(month), 
                     `Health Board / Trust` == board,
                        month != "January 2023") # SCORE SUBMISSIONS BEGAN FROM FEB 23
   
@@ -339,24 +342,31 @@ num_scores <- finale_df |>
 
   #############PLOTTING LOGIC FOR BAR GRAPH OF ATTENDANCE################# 
 
-  bg <- finale_df |>
-          select(-count_sub, -median_score) |>
-          pivot_longer(
-          cols = starts_with("c"),
-          names_to = "session",
-          values_to = "number")|>
-          filter(
-            `Health Board / Trust` == board, 
-            !is.na(month), month != "December 2023") # NO EVENT IN DECEMBER
+  bg_plot <- bg |>
+              filter(
+                `Health Board / Trust` == board)
 
-
- 
-    # Determine dynamic y-axis limits and breaks
-  max_count <- max(bg$number, na.rm = TRUE) + 2
-  y_breaks <- seq(0, max_count, by = max(1, floor((max_count - 0) / 5))) # Adjust the divisor for different granularity
+  # Ensure max_count is a finite number
+  max_count <- max(bg_plot$number, na.rm = TRUE)
+  
+  if(!is.finite(max_count)) {
+    max_count <- 10 # A default fallback value, adjust as needed
+  } else {
+    max_count <- max_count + 2 # Only add 2 if max_count is finite
+  }
+  
+  # Now, max_count is guaranteed to be finite, so we can safely use it in seq()
+  # Also, ensure that by argument of seq() does not evaluate to zero
+  step_size <- max(1, floor((max_count - 0) / 5))
+  if (step_size > 0) {
+    y_breaks <- seq(0, max_count, by = step_size)
+  } else {
+    # Fallback in case step_size calculation fails to produce a positive number
+    y_breaks <- seq(0, max_count, by = 1) # Default to increment by 1
+  }
   
   # Plot
-  att <- ggplot(bg, aes(x = month, y = number, fill = session)) +
+  att <- ggplot(bg_plot, aes(x = month, y = number, fill = session)) +
     geom_bar(stat = "identity", position = "stack") +
     scale_fill_manual(values = c("count_cc" = "#FFE18A", "count_cclead" = "#BCB1C7", "count_ls" = "#99D7D8"),
                       labels = c("Coaching Call", "Coaching Call (Leadership)", "Learning Session")) +
@@ -395,10 +405,7 @@ num_scores <- finale_df |>
 new_diff <- diff |>
             filter(
               `Health Board / Trust` == board) 
-              
-  
-  
-  
+   
   # Determine the range for y-axis to ensure it includes 0
   y_range <- range(new_diff$difference, na.rm = TRUE)
   y_range[1] <- min(0, y_range[1])  # Ensure 0 is included as the lower limit if not already
@@ -407,18 +414,15 @@ new_diff <- diff |>
   plot_diff <- ggplot(new_diff, aes(x = month, y = difference, group = 1)) +
     geom_line(color = "#4A7986", size = 1) +
     geom_point(color = "#4A7896", size = 3, shape = 21, fill = "white", stroke = 0.3) +
-    geom_hline(yintercept = 0, linetype = "dashed", color = "darkgray") +  # Add horizontal line at y=0
+    geom_hline(yintercept = 0, linetype = "dashed", color = "darkgray") + #### Add horizontal line at y=0(IMPROVES READABILITY)
     scale_x_discrete() +
     scale_y_continuous(limits = y_range) +  # Ensure y-axis always includes 0
     labs(
-      title = paste("Difference in median monthly progress scores of", board)#,
-      #caption = "Source: SCC National Planning File"
+      title = paste("Difference in median monthly progress scores of", board)
     ) +
     theme_minimal(base_family = "sans") +
     theme(
       plot.title = element_text(size = 8, hjust = 0.5, color = "#1b5768"),
-      #plot.subtitle = element_text(size = 12, hjust = 0.5, color = "#1b5768", margin = margin(b = 10)),
-      #plot.caption = element_text(size = 8, hjust = 1, color = "darkgray"),
       axis.text.x = element_text(angle = 90, hjust = 1, color = "darkgray"),
       axis.text.y = element_text(angle = 0, hjust = 1, color = "darkgray"),
       axis.title.x = element_blank(),
@@ -431,9 +435,6 @@ new_diff <- diff |>
       panel.background = element_rect(fill = "white", color = NA)
     )
   
-
-
-
 ########## PLOTTING LOGIC FOR MEDIAN OF DIFFERENCE ###############################
 
 diff_med <- median_diff_df |>
@@ -453,14 +454,10 @@ diff_med <- median_diff_df |>
     scale_x_discrete() +
     scale_y_continuous(limits = y_range) +  # Ensure y-axis always includes 0
     labs(
-      title = paste("Median of difference of monthly progress scores of", board)#,
-      #caption = "Source: SCC National Planning File"
-    ) +
+      title = paste("Median of difference of monthly progress scores of", board)) +
     theme_minimal(base_family = "sans") +
     theme(
       plot.title = element_text(size = 8, hjust = 0.5, color = "#1b5768"),
-      #plot.subtitle = element_text(size = 12, hjust = 0.5, color = "#1b5768", margin = margin(b = 10)),
-      #plot.caption = element_text(size = 8, hjust = 1, color = "darkgray"),
       axis.text.x = element_text(angle = 90, hjust = 1, color = "darkgray"),
       axis.text.y = element_text(angle = 0, hjust = 1, color = "darkgray"),
       axis.title.x = element_blank(),
@@ -490,11 +487,11 @@ diff_med <- median_diff_df |>
   grid.text("Source: SCC National Planning File and Master Distribution List", x = unit(0.98, "npc"), y = unit(0.02, "npc"), 
             just = "right", gp = gpar(col = "darkgray", fontsize = 8))
   dev.off() # Close the device
-}
+} #Close the loop
 
 
 
-###########THIS IS THE SAMPLE OF THE BAR GRAPH AND LINE GRAPH WE SPOKE WE@LL GIVE TO DOM AS AN OPTION
+###########THIS IS THE SAMPLE OF THE BAR GRAPH AND LINE GRAPH WE Said WE'LL GIVE TO DOM AS AN OPTION
 
 
 ################## COMBO OF BAR GRAPH AND LINE GRAPH #############################
@@ -561,9 +558,6 @@ print(latest)
 #CairoPNG("plot_bar_latest_count.png", width = 10, height = 7, units = "in", dpi = 300)
 #print(latest) # Make sure to print the plot
 #dev.off() # Close the device
-
-
-
 
 
 
